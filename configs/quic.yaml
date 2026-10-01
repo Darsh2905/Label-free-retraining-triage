@@ -1,0 +1,25 @@
+# CESNET-QUIC22 overlay (spec §10). The dataset spans only 4 ISO weeks (W44-W47 2022),
+# so the weekly design is impossible here: 4 weekly points cannot support an STL
+# period, an 8-week MAD window or a 3-week persistence gate. Everything therefore runs
+# at DAILY decision cadence ("period" = day index 1..28), with the same code and config
+# structure. Documented event (Luxemburk et al., TMA 2023): models trained on W44 lose
+# accuracy in W47 (days 22-28), attributed to a provider certificate change that
+# altered early packet sizes.
+dataset: quic22
+period: day
+w0_periods: [1, 2, 3, 4, 5, 6, 7]          # W-2022-44
+replay_start: 8
+replay_end: 28
+sigma_window: [8, 14]                       # W45: signal scales, anchor, PELT penalty
+calibration_window: [8, 21]                 # W45-W46: g
+transfer_window: [22, 28]                   # W47
+retrain_window: 7                           # a retrain uses the last 7 days of labels
+exclude_classes: [default-background, google-background, facebook-background]  # catch-alls, not services
+detection:
+  stl: {enabled: false}                     # 7-21 daily points: no weekly seasonal estimate possible
+seeds: [0, 1, 2, 3, 4]
+sweeps:
+  periodic_every: [1, 2, 3, 7, 14]
+evaluation:
+  eval_start: 8
+  known_events: {cert_change_W47: 22}

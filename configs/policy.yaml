@@ -1,0 +1,20 @@
+# Cost model (spec §7.2). Units are illustrative; only the ratio
+#   r = (C_err * V_ref) / (C_retrain + C_label)
+# matters for decisions, and it is swept over >2 orders of magnitude (§7.3).
+# V_ref = mean weekly stream volume in W0 (computed from data, label-free).
+cost:
+  C_retrain: 100
+  C_label: 400
+  default_ratio: 10
+decision:
+  g_extrapolation: linear      # linear (default: isotonic in range, OLS slope beyond) | clip (flat beyond calibration max)
+  p3_auto_z: 3.0               # P3 default threshold = calm median + z * calm MAD-scale of daily D
+sweeps:
+  cost_ratio: [0.3, 1, 3, 10, 30, 100, 300, 1000]
+  periodic_every: [1, 2, 3, 4, 6, 8, 13, 26]
+  p3_z: [1, 2, 3, 5, 8, 12, 20, 40]
+  p5_target_drop: [0.01, 0.02, 0.03, 0.05, 0.08, 0.12]
+evaluation:
+  eval_start: 3
+  justified_loss: 0.03
+  known_events: {exporter_update: 10}   # CESNET-TLS-Year22 flow-exporter update, week 10 (7-13 Mar 2022)

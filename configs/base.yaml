@@ -1,0 +1,35 @@
+# Dataset, replay windows, classifier. Windows are in decision periods ("weeks"):
+# ISO weeks for TLS-Year22 (configs/quic.yaml switches to days).
+dataset: tls-year22
+data_root: data
+cache_root: results/cache
+seed: 0
+seeds: [0, 1, 2, 3, 4]
+period: iso_week
+w0_periods: [1, 2]          # reference window W0 (spec §3.2)
+replay_start: 3
+replay_end: 52
+n_classes: 50
+class_selection: w0         # w0 = rank by W0 volume (deployment-time info); year = spec literal (future info)
+closed_world: true          # spec §3.2: drop flows outside the top-N services
+flows_per_day: 10000        # uniform, label-agnostic per-day cap for the experiment
+max_train_flows: 100000     # uniform subsample of a retraining window (speed)
+holdout_fraction: 0.2       # of each training window: label-free observer reference + reference F1
+retrain_window: 2           # trailing weeks of labels used by a retrain (spec §4)
+sigma_window: [3, 8]        # signal scales, detector anchor, PELT penalty (label-free)
+calibration_window: [3, 10] # g fit (labels via the calibration accessor only)
+transfer_window: [40, 45]   # §7.4 calibration-transfer diagnostic (evaluation only)
+classifier:                 # fixed substrate; never tuned on replay data
+  # min_sum_hessian_in_leaf / lambda_l2: with LightGBM defaults, 50-class training at
+  # lr=0.1 diverged on W0 (held-out acc 0.16 with mean max-prob 0.9999). These two
+  # settings stabilise it (acc 0.845), chosen on W0 only (see README, "Classifier").
+  n_estimators: 100
+  learning_rate: 0.1
+  num_leaves: 31
+  min_data_in_leaf: 40
+  min_sum_hessian_in_leaf: 1.0
+  lambda_l2: 1.0
+  bagging_fraction: 0.8
+  bagging_freq: 1
+  feature_fraction: 0.8
+  num_threads: 8

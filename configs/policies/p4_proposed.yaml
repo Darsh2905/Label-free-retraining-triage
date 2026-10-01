@@ -1,0 +1,2 @@
+# spec §9 verbatim: persistent drift event AND myopic cost rule
+{name: P4_proposed, type: proposed, rule: myopic, require_drift_event: true}

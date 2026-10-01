@@ -1,0 +1,2 @@
+# addition: accumulated expected excess loss vs. cost of fixing; no event gate
+{name: P4c_cumulative, type: proposed, rule: cumulative, require_drift_event: false}

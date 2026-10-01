@@ -1,0 +1,26 @@
+[project]
+name = "label-free-retraining-triage"
+version = "0.1.0"
+description = "Label-free, cost-aware retraining triage for encrypted traffic classifiers"
+requires-python = ">=3.11"
+# Pinned to the versions the reported results were produced with.
+dependencies = [
+  "lightgbm==4.7.0",
+  "cesnet-datazoo==0.2.0",
+  "ruptures==1.1.10",
+  "statsmodels==0.15.0",
+  "scikit-learn==1.9.1",
+  "scipy==1.18.1",
+  "pandas==3.0.6",
+  "numpy==2.5.3",
+  "matplotlib==3.11.2",
+  "pyyaml==6.0.3",
+  "pyarrow==25.0.1",
+  "requests==2.34.2",
+  "pytest==9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

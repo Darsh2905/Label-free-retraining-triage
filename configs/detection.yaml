@@ -1,0 +1,10 @@
+detection:
+  stl: {enabled: true, period: 7, robust: true}     # on the DAILY series
+  normalize: {mode: anchored, window_days: 56, min_periods: 7}   # anchored (default) | rolling (spec)
+  pelt:
+    model: l2
+    min_size: 3
+    jump: 1
+    penalty: auto              # auto = smallest grid value with 0 change points on the calm window
+    penalty_grid: [1, 2, 3, 5, 8, 12, 20, 30, 50, 80, 120, 200, 400]
+  persistence: {k_days: 3}

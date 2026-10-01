@@ -1,0 +1,7 @@
+observer:
+  reject_percentile: 10       # tau = this percentile of the generation's reference max-prob
+  ks: {n_ref: 20000, n_cur: 5000}
+  mmd: {n_ref: 1000, n_cur: 1000}
+  weighting: family           # family (default, see composite.py) | equal (spec literal)
+  weights: null               # optional explicit {signal: weight}; overrides `weighting`
+  scale_estimator: mad        # robust sigma from the sigma window
