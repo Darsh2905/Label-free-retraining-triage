@@ -164,8 +164,16 @@ def _parse_sample(header: str, lines: list[str]) -> pd.DataFrame:
 
 
 def fetch_day(url: str, entry: DayEntry, out_dir: str, target_per_day: int, seed: int,
-              chunk: int = 1 << 20, max_retries: int = 20) -> str:
-    """Stream one day, Bernoulli-sample flows, write <out_dir>/<date>.parquet (+ .json meta)."""
+              chunk: int = 1 << 20, max_retries: int = 40) -> str:
+    """Stream one day, Bernoulli-sample flows, write <out_dir>/<date>.parquet (+ .json meta).
+
+    Resumes mid-file on a dropped connection rather than restarting from byte 0: the zip
+    member's compressed-byte Range request on retry starts at `off + consumed`, and the
+    same decompressor objects (which hold internal stream state) are reused across
+    retries, so no already-downloaded data is thrown away. On a ~1GB QUIC day with a
+    connection that drops every ~300-450MB, restarting from scratch each time meant the
+    download could never actually finish; resuming fixes that.
+    """
     out_path = os.path.join(out_dir, f"{entry.date}.parquet")
     if os.path.exists(out_path):
         return out_path
@@ -182,15 +190,15 @@ def fetch_day(url: str, entry: DayEntry, out_dir: str, target_per_day: int, seed
     p = min(1.0, target_per_day / total) if total else 0.05
     kind = "xz" if entry.flows_name.endswith(".xz") else "gz"
     rng = np.random.default_rng([seed, int(entry.date)])
+    off = _data_offset(url, entry.header_offset)
+    end = off + entry.compress_size - 1
+    outer = zlib.decompressobj(-zlib.MAX_WBITS)   # zip member is deflated; state persists across retries
+    inner = _Inner(kind)
+    header, rem, kept, n_seen, consumed = None, "", [], 0, 0
     for attempt in range(max_retries):
         try:
-            off = _data_offset(url, entry.header_offset)
-            r = requests.get(url, headers={"Range": f"bytes={off}-{off + entry.compress_size - 1}"},
-                             stream=True, timeout=300)
+            r = requests.get(url, headers={"Range": f"bytes={off + consumed}-{end}"}, stream=True, timeout=300)
             r.raise_for_status()
-            outer = zlib.decompressobj(-zlib.MAX_WBITS)   # zip member is deflated
-            inner = _Inner(kind)
-            header, rem, kept, n_seen = None, "", [], 0
             for raw in r.iter_content(chunk):
                 text = rem + inner.feed(outer.decompress(raw)).decode("utf-8", errors="replace")
                 lines = text.split("\n")
@@ -201,6 +209,7 @@ def fetch_day(url: str, entry: DayEntry, out_dir: str, target_per_day: int, seed
                     n_seen += len(lines)
                     mask = rng.random(len(lines)) < p
                     kept.extend(l for l, m in zip(lines, mask) if m)
+                consumed += len(raw)   # only advances once a chunk is fully processed -> safe resume point
             tail = rem + inner.feed(outer.flush()).decode("utf-8", errors="replace")
             for l in tail.split("\n"):
                 if l.strip():
@@ -208,12 +217,12 @@ def fetch_day(url: str, entry: DayEntry, out_dir: str, target_per_day: int, seed
                     if rng.random() < p:
                         kept.append(l)
             break
-        except Exception as ex:  # network hiccup: restart this day from scratch with a fresh RNG
-            rng = np.random.default_rng([seed, int(entry.date)])
+        except Exception as ex:  # network hiccup: resume from `consumed`, not from scratch
             if attempt == max_retries - 1:
                 raise
             time.sleep(min(600, 15 * 2 ** attempt))   # patient: survives network outages
-            print(f"[{entry.date}] retry {attempt + 1}: {ex!r}", flush=True)
+            print(f"[{entry.date}] retry {attempt + 1} (resuming at "
+                  f"{consumed}/{entry.compress_size} compressed bytes): {ex!r}", flush=True)
     df = _parse_sample(header, kept)
     tmp = out_path + ".tmp"
     df.to_parquet(tmp, index=False)

@@ -19,9 +19,20 @@ def set_seed(seed: int) -> None:
     np.random.seed(seed)
 
 
+# Keys whose dict value is a complete, dataset-specific set (never meant to accumulate
+# entries across base + overlay configs) are replaced wholesale, not recursively merged.
+# Found via a real bug: quic.yaml's known_events: {cert_change_W47: 22} merged with
+# base.yaml's known_events: {exporter_update: 10} (a TLS-only concept), and
+# scripts/04_run_quic_validation.py's "first known event" picked the wrong one (10),
+# corrupting the reported detection-delay and pre/post-event split for QUIC.
+_REPLACE_WHOLESALE = {"known_events"}
+
+
 def _deep_update(base: dict, upd: dict) -> dict:
     for k, v in upd.items():
-        if isinstance(v, dict) and isinstance(base.get(k), dict):
+        if k in _REPLACE_WHOLESALE:
+            base[k] = copy.deepcopy(v)
+        elif isinstance(v, dict) and isinstance(base.get(k), dict):
             _deep_update(base[k], v)
         else:
             base[k] = copy.deepcopy(v)

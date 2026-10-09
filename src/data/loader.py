@@ -76,13 +76,21 @@ def log_transform_mask(feature_names: list[str]) -> np.ndarray:
     return np.array([n.startswith(LOG1P_PREFIXES) for n in feature_names])
 
 
+def _app_count(c) -> int:
+    """TLS-Year22's stats json gives a plain int per app (rows actually saved to file).
+    QUIC22's gives {"seen": N, "saved": M} -- N before, M after the dataset's own
+    per-app downsampling. Use "saved" so the ranking is consistent across both
+    datasets: "how many of this app's flows are actually in the file we read."""
+    return int(c["saved"]) if isinstance(c, dict) else int(c)
+
+
 def select_classes(meta_by_date: dict[str, dict], dates: list[str], n: int,
                    exclude: tuple[str, ...] = ()) -> list[str]:
     counts: dict[str, int] = {}
     for d in dates:
         for app, c in meta_by_date[d]["app_counts_full_day"].items():
             if app not in exclude:
-                counts[app] = counts.get(app, 0) + int(c)
+                counts[app] = counts.get(app, 0) + _app_count(c)
     ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
     return [a for a, _ in ranked[:n]]
 

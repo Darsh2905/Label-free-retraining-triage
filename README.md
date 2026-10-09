@@ -106,4 +106,122 @@ were chosen on W0 only. The trainer now fails loudly on the divergence signature
 
 ## Results
 
-*(filled in from the final run; see below)*
+Full year (CESNET-TLS-Year22), 5 seeds, all numbers from
+`results/run_20261002_204539_replay_tls-year22/` unless noted. Reproduce with
+`./run_all.sh` or the individual `scripts/0N_*.py` commands in the table above.
+
+### Go/no-go checkpoint (spec step 4, evaluation-only diagnostic)
+
+Correlation between the label-free composite `D` and the **true** weekly macro-F1
+loss of the never-retrained model, over all 50 replay weeks:
+
+| | Pearson | Spearman |
+|---|---|---|
+| weekly level | 0.856 | 0.576 |
+| weekly level, detrended | 0.941 | 0.854 |
+
+**Verdict: GO** (threshold: \|Spearman\| ≥ 0.3). Worth reporting honestly rather than
+only the pass: an earlier 11-week partial check (run while data was still downloading)
+showed Spearman 0.82 — the full-year number is real but weaker, because `D` stays
+persistently elevated through the back half of the year rather than tracking loss
+proportionally. Per-signal breakdown: confidence-family signals (max-prob, margin,
+entropy, reject rate) carry almost all of the correlation (Spearman 0.67–0.73);
+predicted-class divergence (JS) is close to useless here (0.05); input-drift (KS, MMD)
+is weak on rank correlation (0.17–0.20) despite moderate Pearson. PELT penalty: 8.0,
+zero change points on the calm window at that value (full sweep logged in
+`checkpoint_report.json`).
+
+### Reference classifier (P0, never retrained)
+
+W0 held-out macro-F1 **0.840**. Run untouched across the full year: mean F1 **0.709**,
+falling to **0.610** by week 52 — not a single shock the model stabilises after, but a
+second decline phase in weeks 44–52 on top of the week-10 exporter event. Worst-hit
+services are dominated by antivirus/security software (`bitdefender-gravityzone` −0.62
+F1, `avast` −0.51), plausibly because their own software updates changed network
+signatures over the year (`figures/per_service_degradation.png`).
+
+### Policy comparison (default cost ratio r=10, mean ± nothing shown = std < 0.01)
+
+| Policy | Mean F1 | Retrains | Total cost | False-trigger rate | Detection delay |
+|---|---|---|---|---|---|
+| P0 — never | 0.709 | 0.0 | 50,625 | — | — |
+| P1 — monthly | 0.855 | 12.0 | 413 † | 0.50 | 0.6 wk |
+| P2 — weekly | **0.868** | 49.0 | 13,323 | 0.92 | 0.0 wk |
+| P3 — threshold | 0.825 | 3.4 | 7,371 | 0.00 | 5.8 wk |
+| **P4 — proposed (spec)** | 0.831 | 4.0 | 4,892 | 0.00 | 3.3 wk |
+| **P4c — cumulative-cost (addition)** | 0.842 | 5.4 | 1,771 | 0.00 | 2.1 wk |
+| P5 — oracle (upper bound) | 0.846 | 6.8 | 1,249 | 0.00 | 1.4 wk |
+
+**P4c beats the spec's literal P4 rule on every axis**: +0.011 F1, 2.8× lower cost,
+1.2 weeks faster detection. This is the result the "deviation #10" design decision
+(§ Design decisions table) predicted: the myopic rule can't price a persistent,
+moderate loss against a one-off fix cost, so it waits longer and retrains less
+efficiently than the cumulative-excess-loss rule.
+
+**Against the exact DP oracle** (`oracle_frontier.csv`, hindsight-optimal schedule at
+each retrain budget — not a competing policy, the true upper bound): P4c's 5.4 retrains
+land almost exactly on the frontier (DP-optimal at 5 retrains: 0.843 vs P4c's actual
+0.842; at 7 retrains: 0.850). P4c is a fully causal, label-free policy landing within
+0.1–0.8 points of a schedule computed with full hindsight and access to every label.
+
+**† Cost-metric caveat, reported rather than hidden.** `total_cost` is measured against
+a *fixed* W0 reference (see `src/evaluation/metrics.py`), so a policy whose retrained
+models frequently exceed that original benchmark racks up negative "error cost" in
+those weeks, which can make the aggregate look anomalously cheap (P1's 413) or, at
+extreme cost ratios in the sensitivity sweep, go strongly negative (P4c at r=1000:
+−$106,693). This is a real property of the chosen reference convention, not a free
+lunch — the F1-vs-retrains comparison above isn't affected by it and is the more
+trustworthy number at a glance.
+
+**Tuned P4c approaches P2's accuracy at a fraction of the retrains**: at r=300, P4c
+reaches 0.856 F1 (99% of P2's 0.868) with 12.6 retrains instead of 49 — a ~4× reduction
+in retrain count for 1.2 points of F1. Full sweep in `sensitivity.csv`; see
+`figures/pareto.png` and `figures/cost_regret.png`.
+
+### QUIC cross-protocol validation (CESNET-QUIC22, spec §10 required check)
+
+Documented event: a provider certificate change in week 47 (day 22 of the replay)
+altering early packet sizes (Luxemburk et al., TMA 2023). 5 seeds,
+`results/run_20261009_103414_quic_quic22/quic_validation.json`.
+
+**P4 and P4c retrain in the exact week of the documented event, in all 5 of 5 seeds,
+with zero false alarms before it and zero detection delay.** P3 (fixed threshold)
+retrains zero times across all 5 seeds — a real, reproducible limitation, not a
+near-miss. P0's F1 drop across the event is small and noisy (mean 0.004, seed range
+−0.002 to +0.009) — a weaker signal than the TLS exporter event, because QUIC22 only
+spans 4 weeks and real degradation is already underway from ~day 11 (a second,
+earlier change point both the detector and the oracle pick up — oracle retrains as
+early as day 9–10 in every seed). The clean, reproducible signal here is the retrain
+*timing* match, not the raw F1-drop magnitude. See `figures/quic_timeline.png`.
+
+**A bug this check caught, worth recording as a finding in itself (spec working
+culture).** The first run of this validation silently used the wrong documented event
+day (10, a TLS-only concept) because `configs/quic.yaml`'s `known_events: {...: 22}`
+was *merged* with `configs/base.yaml`'s `known_events: {...: 10}` instead of replacing
+it — a config-merging bug, not a pipeline bug. The actual retrain *decisions* were
+unaffected (computed independently of this diagnostic), but the reported detection
+delay and pre/post-F1 split were wrong (delay 12 days, drop 0.043 — both artifacts of
+splitting the replay at the wrong day). Fixed in `src/utils.py` (`known_events` now
+replaces wholesale across configs rather than unioning) and covered by
+`test_known_events_not_unioned_across_base_and_overlay`. A second, independent bug was
+also found and fixed here: `select_classes` assumed every dataset's per-app flow count
+is a plain int, but CESNET-QUIC22's stats format is `{"seen": N, "saved": M}` — fixed
+and covered by `test_select_classes_handles_quic_and_tls_stats_formats`.
+
+### Deliverables checklist (spec §12)
+
+- [x] `tests/test_no_label_leakage.py` passing (first in run order; 50 tests total)
+- [x] `scripts/03_run_replay.py --config configs/base.yaml` runs end to end
+- [x] `policy_comparison.csv` with all 6 spec policies (+P4c) × 5 seeds
+- [x] Pareto, per-service-degradation, cost-regret, calibration-transfer, timeline plots
+- [x] Go/no-go correlation report (kept — see above; a real, if weaker-than-hoped, pass)
+- [x] QUIC validation result — confirmed, not disconfirmed, with full discussion above
+- [x] This README
+
+### What's not yet done
+
+- The exact-DP-oracle computation and calibration-transfer diagnostic ran on seed 0
+  only (`--oracle-seeds`); cheap to extend to all 5 given the cache, not yet done.
+- `data/seed_corpus.py`-style synthetic-corpus caveats don't apply here (real data
+  throughout), but the usual caveat applies to QUIC22: only 4 weeks of data, so its
+  F1-drop numbers are noisier than TLS-Year22's and shouldn't be over-interpreted.

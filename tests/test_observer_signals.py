@@ -109,3 +109,28 @@ def test_scaler_fit_once_and_never_changes():
         sc.fit(X)
     with pytest.raises(ValueError):
         sc.mean_[0] = 1.0
+
+
+def test_select_classes_handles_quic_and_tls_stats_formats():
+    """CESNET-TLS-Year22's stats json gives a plain int per app; CESNET-QUIC22's gives
+    {"seen": N, "saved": M}. select_classes must rank correctly either way (found via
+    a real crash in scripts/04_run_quic_validation.py: int({"seen":...}) raised)."""
+    from src.data.loader import _app_count, select_classes
+    meta = {
+        "20220101": {"app_counts_full_day": {"netflix": 100, "youtube": {"seen": 500, "saved": 50}}},
+        "20220102": {"app_counts_full_day": {"netflix": 100, "youtube": {"seen": 500, "saved": 50}}},
+    }
+    assert select_classes(meta, ["20220101", "20220102"], n=2) == ["netflix", "youtube"]
+    assert _app_count({"seen": 999, "saved": 42}) == 42
+    assert _app_count(17) == 17
+
+
+def test_known_events_not_unioned_across_base_and_overlay():
+    """Found via a real bug: configs/quic.yaml's known_events merged with base.yaml's
+    instead of replacing it, so QUIC's validation script picked the wrong documented
+    event day (10, a TLS-only concept) instead of 22 (the real QUIC cert-rotation day)."""
+    from src.utils import load_config
+    quic = load_config("quic.yaml")
+    assert quic["evaluation"]["known_events"] == {"cert_change_W47": 22}
+    tls = load_config()
+    assert tls["evaluation"]["known_events"] == {"exporter_update": 10}
