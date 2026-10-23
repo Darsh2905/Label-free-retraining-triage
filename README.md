@@ -158,11 +158,14 @@ signatures over the year (`figures/per_service_degradation.png`).
 moderate loss against a one-off fix cost, so it waits longer and retrains less
 efficiently than the cumulative-excess-loss rule.
 
-**Against the exact DP oracle** (`oracle_frontier.csv`, hindsight-optimal schedule at
-each retrain budget — not a competing policy, the true upper bound): P4c's 5.4 retrains
-land almost exactly on the frontier (DP-optimal at 5 retrains: 0.843 vs P4c's actual
-0.842; at 7 retrains: 0.850). P4c is a fully causal, label-free policy landing within
-0.1–0.8 points of a schedule computed with full hindsight and access to every label.
+**Against the exact DP oracle** (hindsight-optimal schedule at each retrain budget and seed, computed by
+`scripts/06_oracle_all_seeds.py`; not a competing policy; mean over all 5 seeds): P4c lands **0.26** macro-F1 points
+below the frontier at its own budget (5.4 retrains), P4 0.61, the 8-week periodic schedule 0.58, P3 0.80, monthly
+periodic 0.46 and the threshold oracle P5 0.30. *Correction:* an earlier version of this README said P4c was "within
+0.1-0.8 points" of the optimum; that compared P4c's 5.4-retrain result with frontier values at 5 and 7 retrains, which
+are not matched budgets. At matched budgets P4c and tuned periodic schedules are within a few tenths of a point of each
+other; P4c's clearer advantage is cost regret at r=10: 1.7 retrain units above the cost-optimal schedule versus 5.8 for
+the best periodic interval chosen in hindsight (clipped-loss convention; P4 6.3, P3 10.0, never retraining 91.8).
 
 **† Cost-metric caveat, reported rather than hidden.** `total_cost` is measured against
 a *fixed* W0 reference (see `src/evaluation/metrics.py`), so a policy whose retrained
@@ -225,3 +228,65 @@ and covered by `test_select_classes_handles_quic_and_tls_stats_formats`.
 - `data/seed_corpus.py`-style synthetic-corpus caveats don't apply here (real data
   throughout), but the usual caveat applies to QUIC22: only 4 weeks of data, so its
   F1-drop numbers are noisier than TLS-Year22's and shouldn't be over-interpreted.
+
+
+## Paper
+
+`paper/main.tex` is an IEEE-conference-format draft (two columns, Times New Roman 10 pt, 7 pages). Every number, table
+and figure in it is generated from result files:
+
+```bash
+python scripts/06_oracle_all_seeds.py      # exact hindsight-optimal frontier, all 5 seeds (slow: ~1-2 h)
+python scripts/07_paper_assets.py          # tables/*.tex, figures/*.pdf, numbers.tex, numbers.json
+tectonic paper/main.tex                    # needs network on first run (fetches IEEEtran, TeX Gyre fonts)
+```
+
+`paper/refs.bib` was checked entry by entry against Crossref; it corrects several errors in the literature-review
+draft (see the comment at the top of the file). The paper reports the cost metric with the weekly loss clipped at zero
+(`summarize(..., clip_loss=True)`); the unclipped numbers in the results tables above are kept for continuity.
+
+
+## Presentation deck
+
+`deck/triage_deck.pptx` (20 slides, 16:9, Arial, speaker notes on every slide; `deck/triage_deck.pdf` is a LibreOffice
+render for quick viewing) explains the project, its novelty and results, and compares them with the literature. Every
+number comes from the paper's generated files, and citation numbers follow the paper's bibliography:
+
+```bash
+python scripts/07_paper_assets.py && tectonic --keep-intermediates paper/main.tex   # numbers + bibliography order
+python scripts/08_make_deck.py                                                     # deck/triage_deck.pptx, deck/figures/
+```
+
+The literature comparison (slides 10, 16, 17) is a comparison of *findings*, not a re-implementation of the cited
+systems: no prior system is label-free, cost-aware and evaluated on encrypted-traffic classification, so there is no
+identical baseline to run. Policies P0-P5 are stand-ins that implement each approach's decision logic on our data.
+
+
+## Live demo
+
+A browser dashboard that runs the **real pipeline live**, one day at a time, on the real 2022 traffic:
+
+```bash
+./run_demo.sh            # = python demo/server.py --open ; dashboard at http://localhost:8800
+```
+
+Start-up takes about 40 s (it loads 357 sampled days and calibrates once); the page shows progress. Then **Start**
+(or press Space). One simulated day takes about 0.6 s of real inference, so a year is about 4 minutes at *Fast*.
+
+![live dashboard](demo/screenshot.png)
+
+What you can do: pick the policy (cumulative rule P4c, the specification's myopic rule P4, fixed threshold P3,
+monthly calendar, never retrain), move the **cost ratio r** while it runs, change the pace, and **inject drift**
+(scale the packet and byte counts of all new flows by x2 or x5) to watch the monitor detect it and retrain.
+
+**What is real and what is not** (also shown in the page): the model's daily predictions, the eight signals, the drift
+score, the detector, the cost rule and every retrain decision are computed live by the project's own code
+(`src/evaluation/live.py`). Retrains normally load the model the experiments trained on the same labeled window
+(logged as a label read in the ledger). After you inject drift, a retrain trains a model live on the perturbed flows with a
+smaller budget (60 rounds, at most 40k flows, about 12 s). The true-F1 curve is computed by the evaluation harness for
+display only; the grey dashed "never retrain" line is precomputed offline on the same data.
+
+**Fidelity is tested.** `tests/test_live_session.py` checks that the live path makes exactly the offline harness's
+decisions (same daily D, drift events, retrain weeks, label ledger) for five policies, that grading labels cannot
+influence a live decision, and that injected drift is detected and repaired. On the real data a full live year with the
+cumulative rule retrained at weeks 10, 13, 25, 32, 38, 47, identical to the offline experiment. TLS-Year22 only.
