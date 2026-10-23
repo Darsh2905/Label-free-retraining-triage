@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>When to retrain: live monitor</title>
+<style>
+  :root{
+    --bg:#f4f6f9; --card:#fff; --line:#d9e0e8; --ink:#1f2937; --muted:#5b6573; --navy:#0f2a47;
+    --blue:#2a78d6; --amber:#eda100; --orange:#d9531e; --green:#12906a; --pink:#e87ba4; --grey:#8b95a3;
+    --blue-t:#e8f1fc; --amber-t:#fff3cc; --orange-t:#fdeee7; --green-t:#e5f6ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+  header{background:var(--navy);color:#fff;padding:12px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  header h1{font-size:20px;margin:0;font-weight:700}
+  header .sub{color:#b8c7da;font-size:13px}
+  .chip{margin-left:auto;padding:5px 14px;border-radius:999px;font-weight:700;font-size:13px;background:#33506f}
+  .chip.running{background:var(--green)} .chip.busy{background:var(--amber);color:#3b2d00}
+  .chip.done{background:#475569} .chip.error{background:var(--orange)}
+  .controls{background:#fff;border-bottom:1px solid var(--line);padding:10px 24px;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+  .ctl{display:flex;align-items:center;gap:8px}
+  .ctl label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  button{font:inherit;font-weight:600;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;color:var(--ink)}
+  button:hover{background:#eef2f7} button:disabled{opacity:.45;cursor:default}
+  button.primary{background:var(--blue);border-color:var(--blue);color:#fff} button.primary:hover{background:#1f68c2}
+  button.warn{border-color:var(--orange);color:var(--orange)} button.warn:hover{background:var(--orange-t)}
+  button.seg{border-radius:0;margin-left:-1px;padding:6px 12px} button.seg:first-of-type{border-radius:8px 0 0 8px;margin-left:0} button.seg:last-of-type{border-radius:0 8px 8px 0}
+  button.seg.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:#fff}
+  input[type=range]{width:200px;accent-color:var(--blue)}
+  .rval{font-weight:700;min-width:62px}
+  #loading{padding:60px 24px;text-align:center;color:var(--muted);font-size:16px}
+  .spin{display:inline-block;width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle;margin-right:10px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding:14px 24px 0}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  .kpi .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .kpi .v{font-size:24px;font-weight:700;color:var(--navy);margin-top:2px;white-space:nowrap}
+  .kpi .s{font-size:12px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:14px 24px 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+  .card h2{font-size:15px;margin:0 0 2px;color:var(--navy)} .card .cap{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+  .span2{grid-column:span 2} .span3{grid-column:span 3}
+  svg text{font-family:inherit}
+  .hidden-tag{display:inline-block;background:var(--orange-t);color:var(--orange);border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:700;margin-left:6px;vertical-align:middle}
+  .seen-tag{display:inline-block;background:var(--green-t);color:var(--green);border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:700;margin-left:6px;vertical-align:middle}
+  .meter{height:26px;background:#eef2f7;border-radius:8px;position:relative;margin:10px 0 4px}
+  .meter .fill{position:absolute;left:0;top:0;bottom:0;border-radius:8px;transition:width .25s,background .25s}
+  .meter .mark{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--navy)}
+  .meter .ml{position:absolute;top:30px;font-size:11.5px;color:var(--navy);font-weight:700;transform:translateX(-50%)}
+  .dec{font-size:13.5px;margin-top:22px}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:700;font-size:12.5px}
+  .badge.hold{background:var(--green-t);color:var(--green)} .badge.retrain{background:var(--amber-t);color:#8a5d00}
+  .badge.event{background:var(--orange-t);color:var(--orange)} .badge.calm{background:#eef2f7;color:var(--muted)}
+  table.flows{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.flows th{text-align:left;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:3px 4px}
+  table.flows td{padding:4px;border-bottom:1px solid #eef2f7;white-space:nowrap}
+  table.flows td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .cbar{display:inline-block;height:8px;border-radius:4px;background:var(--blue);vertical-align:middle}
+  .led-big{font-size:30px;font-weight:800;color:var(--green)}
+  .chips span{display:inline-block;background:var(--amber-t);color:#6b4a00;border-radius:6px;padding:2px 8px;margin:2px 4px 2px 0;font-size:12.5px;font-weight:600}
+  #log{max-height:230px;overflow:auto;font-size:13px}
+  #log div{padding:4px 2px;border-bottom:1px solid #eef2f7;display:flex;gap:10px}
+  #log .t{color:var(--muted);min-width:118px;font-variant-numeric:tabular-nums} #log .m.ev{font-weight:700;color:var(--orange)}
+  #log .m.rt{font-weight:700;color:#8a5d00} #log .m.mu{color:var(--muted)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:4px}
+  .legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+  details.real{background:#fff;border-bottom:1px solid var(--line);padding:6px 24px;font-size:13px;color:var(--muted)}
+  details.real summary{cursor:pointer;font-weight:600;color:var(--navy)} details.real ul{margin:8px 0 4px;padding-left:20px} details.real li{margin:4px 0}
+  #jserr{display:none;white-space:pre-wrap;background:#fee;color:#900;padding:8px 24px;font:12px monospace}
+  @media (max-width:1100px){.grid{grid-template-columns:1fr}.span2,.span3{grid-column:auto}.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<pre id="jserr"></pre>
+<header>
+  <h1>When to retrain: live monitor</h1>
+  <span class="sub">A frozen classifier on a real year of encrypted traffic. The monitor sees outputs and inputs only, never labels.</span>
+  <span class="chip" id="chip">Loading…</span>
+</header>
+
+<div class="controls">
+  <div class="ctl">
+    <button class="primary" id="bStart" title="Space">▶ Start</button>
+    <button id="bPause">⏸ Pause</button>
+    <button id="bReset" title="Restart the replay from week 3">⟲ Restart</button>
+  </div>
+  <div class="ctl"><label>Policy</label>
+    <select id="selPolicy"></select></div>
+  <div class="ctl" title="r = cost of error ÷ cost of fixing. A higher r means errors are costly compared with retraining, so the cost rule retrains more readily. Takes effect immediately.">
+    <label>Cost ratio r</label><input type="range" id="rRange" min="0" max="100" value="49.5"><span class="rval" id="rVal">10</span></div>
+  <div class="ctl"><label>Pace</label>
+    <span><button class="seg" data-pace="slow">Slow</button><button class="seg on" data-pace="normal">Normal</button><button class="seg" data-pace="fast">Fast</button></span></div>
+  <div class="ctl" title="Scales the packet and byte counts of every incoming flow from now on, like a certificate or exporter change. The monitor only sees the changed features.">
+    <label>Inject drift</label>
+    <button class="warn" data-inj="moderate">Moderate (×2)</button>
+    <button class="warn" data-inj="severe">Severe (×5)</button>
+    <button id="bStopInj">Stop injecting</button></div>
+</div>
+
+<details class="real" id="realBox">
+  <summary>What is real here, and what is not?</summary>
+  <ul>
+    <li><b>Computed live, every day (about 0.6 s):</b> the deployed LightGBM model classifies that day's real 2022 flows; the eight signals, the drift score, the change detector, the cost rule and every retrain decision come from the project's own code.</li>
+    <li><b>Pre-trained offline:</b> when the monitor retrains, it loads the model that the experiments trained on the same two weeks of labels (same procedure), and logs the label read. <b>Exception:</b> after you inject drift, a retrain trains a model live on the perturbed flows with a smaller budget (60 rounds, at most 40k flows, about 12 s).</li>
+    <li><b>Hidden from the monitor:</b> the true macro-F1 curve is computed by the evaluation harness for display only. The grey dashed "never retrain" line was precomputed offline on the same data.</li>
+    <li><b>Injected drift:</b> scales the packet and byte counts of all new flows; the monitor sees only the changed features, labels are unchanged.</li>
+  </ul>
+</details>
+<div id="loading"><span class="spin"></span><span id="loadmsg">Starting…</span></div>
+
+<div id="app" style="display:none">
+  <div class="kpis">
+    <div class="kpi"><div class="l">Week · date</div><div class="v" id="kWeek">–</div><div class="s" id="kDate">–</div></div>
+    <div class="kpi"><div class="l">Deployed model</div><div class="v" id="kGen">w0</div><div class="s" id="kGenS">trained on weeks 1–2</div></div>
+    <div class="kpi"><div class="l">Retrains so far</div><div class="v" id="kRet">0</div><div class="s" id="kRetS">–</div></div>
+    <div class="kpi"><div class="l">True macro-F1 today <span class="hidden-tag">hidden</span></div><div class="v" id="kF1">–</div><div class="s" id="kF1S">evaluation only</div></div>
+    <div class="kpi"><div class="l">Drift score D <span class="seen-tag">seen</span></div><div class="v" id="kD">–</div><div class="s" id="kDS">–</div></div>
+    <div class="kpi"><div class="l">Labels the monitor read</div><div class="v" id="kLab" style="color:var(--green)">0</div><div class="s">by construction</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card span2">
+      <h2>Accuracy of the classifier <span class="hidden-tag">hidden from the monitor</span></h2>
+      <div class="cap">True macro-F1, computed by the evaluation harness for display only. Bold = weekly, faint = daily.</div>
+      <svg id="svgF1" width="100%" viewBox="0 0 860 270"></svg>
+      <div class="legend"><span><i style="background:var(--blue)"></i>this run (weekly)</span><span><i style="background:#9fc3ee"></i>daily</span>
+        <span><i style="background:var(--grey)"></i>never retrain (precomputed, same data)</span><span><i style="background:var(--amber)"></i>retrain</span><span><i style="background:#f4b79e"></i>injected drift</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Decision: is the damage worth the price of fixing it? <span class="seen-tag">seen</span></h2>
+      <div class="cap" id="polName">–</div>
+      <div class="meter"><div class="fill" id="mFill" style="width:0"></div><div class="mark" id="mMark" style="left:66%"></div><div class="ml" id="mLab" style="left:66%">retrain at 1.0</div></div>
+      <div class="dec" id="decText">Press Start.</div>
+      <div style="margin-top:10px" id="decBadges"></div>
+      <div class="cap" id="decExplain" style="margin-top:14px;border-top:1px solid #eef2f7;padding-top:10px"></div>
+    </div>
+
+    <div class="card span2">
+      <h2>Drift score D: what the monitor sees <span class="seen-tag">seen</span></h2>
+      <div class="cap">Eight label-free signals, oriented so that higher is worse, fused into one score per day. Shaded weeks: a persistent drift event is active.</div>
+      <svg id="svgD" width="100%" viewBox="0 0 860 230"></svg>
+    </div>
+
+    <div class="card">
+      <h2>The eight signals today <span class="seen-tag">seen</span></h2>
+      <div class="cap">Distance from this model's own baseline, in units of normal daily variation. Higher is worse.</div>
+      <svg id="svgZ" width="100%" viewBox="0 0 380 250"></svg>
+    </div>
+
+    <div class="card">
+      <h2>Live classifier output <span class="seen-tag">seen</span></h2>
+      <div class="cap">Share of today's flows predicted as each service (blue) vs. at training time (grey).</div>
+      <svg id="svgTop" width="100%" viewBox="0 0 380 240"></svg>
+      <div class="cap" id="confCap" style="margin-top:6px">–</div>
+      <svg id="svgConf" width="100%" viewBox="0 0 380 70"></svg>
+    </div>
+
+    <div class="card">
+      <h2>Flows being classified right now</h2>
+      <div class="cap">Six random flows from today's batch (the model never sees their true service).</div>
+      <table class="flows"><thead><tr><th>bytes</th><th>pkts</th><th>sec</th><th>predicted service</th><th>confidence</th></tr></thead><tbody id="flowBody"></tbody></table>
+    </div>
+
+    <div class="card">
+      <h2>Label ledger</h2>
+      <div class="cap">Every label read goes through one guarded store and is logged here.</div>
+      <div><span class="led-big" id="ledMon">0</span> <span style="color:var(--muted)">labels read by the observer, detector or cost rule</span></div>
+      <div style="margin-top:8px" id="ledSetup" class="cap">–</div>
+      <div style="margin-top:6px"><b>Retrains</b> (each reads the last 2 weeks of labels):</div>
+      <div class="chips" id="ledRet"><span style="background:#eef2f7;color:var(--muted)">none yet</span></div>
+    </div>
+
+    <div class="card span3">
+      <h2>What just happened</h2>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.onerror = (m, s, l, c, e) => { const p = document.getElementById('jserr'); p.style.display = 'block'; p.textContent += `${m} (${s}:${l}:${c})\n`; };
+const $ = id => document.getElementById(id);
+const COL = {blue:'#2a78d6', amber:'#eda100', orange:'#d9531e', green:'#12906a', pink:'#e87ba4', grey:'#8b95a3', navy:'#0f2a47', ink:'#1f2937', muted:'#5b6573', line:'#d9e0e8'};
+const FAM = {max_prob_mean:'blue', max_prob_p10:'blue', margin_mean:'blue', entropy_mean:'blue', js_div:'orange', ks_mean:'green', mmd:'green', reject_rate:'pink'};
+const SIGNAME = {max_prob_mean:'Max prob. (mean)', max_prob_p10:'Max prob. (10th pct.)', margin_mean:'Top-2 margin', entropy_mean:'Entropy', js_div:'JS divergence (classes)', ks_mean:'KS statistic (inputs)', mmd:'Kernel MMD² (inputs)', reject_rate:'Reject rate'};
+const S = {epoch:null, uiInit:false, since:0, days:[], weeks:[], injects:[], cfg:null, status:null, running:false, phase:'loading', pace:'normal', weekEnd:{}, lastDay:null, lastWeek:null, ledger:null, busy:null};
+let inflight = false, dirty = true, ratioTimer = null;
+
+const EXPLAIN = {
+  cumulative: '<b>How to read this:</b> each week the monitor adds the expected F1 loss above what a freshly trained model loses anyway, priced in "retrains". The bar fills as damage accumulates. At 1.0 retraining has paid for itself, so it retrains and the bar resets. Move the cost ratio r to make errors cheaper or dearer.',
+  myopic: '<b>How to read this:</b> the bar compares one week of expected loss with the one-off price of fixing it, and a persistent drift event must also be active. A steady, moderate loss never fills it, which is why the cumulative rule was added.',
+  threshold: '<b>How to read this:</b> an alarm fires when the drift score D passes a fixed level. What retraining costs is not considered, and a slow drift can take weeks to trip it.',
+  periodic: '<b>How to read this:</b> a calendar: retrain every 4 weeks whatever the traffic does. It spends labels whether or not the model has degraded.',
+  never: '<b>How to read this:</b> the baseline: the model is never updated, so watch the accuracy chart decay.'
+};
+// ---------------------------------------------------------------- API
+async function api(body){ const r = await fetch('/api/control', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); return r.json(); }
+async function poll(){
+  if (inflight) return; inflight = true;
+  try{
+    const r = await fetch('/api/poll?since=' + S.since); const d = await r.json();
+    S.phase = d.phase; S.running = d.running; S.pace = d.pace; S.busy = d.busy || null;
+    if (d.phase === 'error'){ $('loadmsg').textContent = 'Start-up failed: ' + d.msg; setChip('error','Error'); }
+    else if (d.phase === 'loading'){ $('loadmsg').textContent = d.msg; }
+    else {
+      if (d.config) { if (!S.uiInit){ initUI(d); S.uiInit = true; } S.cfg = d.config; }
+      if (S.epoch !== d.epoch){ S.epoch = d.epoch; resetLocal(); inflight = false; return; }   // the session was restarted: refetch from 0
+      ingest(d.records || []); S.since = d.n; S.status = d.status; S.ledger = d.ledger;
+      $('loading').style.display = 'none'; $('app').style.display = 'block'; dirty = true;
+    }
+  } catch(e){ /* server busy or restarting; retry */ }
+  inflight = false;
+}
+function resetLocal(){ S.since=0; S.days=[]; S.weeks=[]; S.injects=[]; S.weekEnd={}; S.lastDay=null; S.lastWeek=null; $('log').innerHTML=''; dirty=true; }
+
+// ---------------------------------------------------------------- records -> state + log
+function ingest(recs){
+  for (const r of recs){
+    if (r.type === 'day'){ S.days.push(r); S.lastDay = r; S.weekEnd[r.week] = r.i; }
+    else if (r.type === 'week'){ S.weeks.push(r); S.lastWeek = r; logWeek(r); }
+    else if (r.type === 'inject'){ S.injects.push(r); logLine(`Week ${r.week} · ${r.date}`, r.factor ? `Drift injected: packet and byte counts of all new flows ×${r.factor}. The monitor only sees the changed features.` : 'Injection stopped: traffic returns to normal.', 'ev'); }
+  }
+}
+function logLine(t, m, cls){ const d = document.createElement('div'); d.innerHTML = `<span class="t">${t}</span><span class="m ${cls||'mu'}">${m}</span>`; const L = $('log'); L.insertBefore(d, L.firstChild); }
+function logWeek(w){
+  const when = `Week ${w.week}`;
+  const prev = S.weeks.length > 1 ? S.weeks[S.weeks.length-2] : null;
+  if (w.monitoring && (!prev || !prev.monitoring)) logLine(when, 'Calibration weeks are over: the monitor starts making decisions.', 'mu');
+  if (w.event && (!prev || !prev.event)) logLine(when, `⚠ Persistent drift event detected (shift ≈ ${w.event.magnitude.toFixed(1)} calm-units, held for ≥3 days).`, 'ev');
+  if (!w.event && prev && prev.event) logLine(when, 'Drift event cleared.', 'mu');
+  if (w.fire){
+    const lw = w.label_window;
+    logLine(when, `↻ RETRAIN: the decision meter reached ${w.panel.value.toFixed(2)} (retrain at 1.00). Read the labels of weeks ${lw[0]}–${lw[1]}, deployed model ${w.gen_after}. ${w.mode}.`, 'rt');
+  } else {
+    logLine(when, `Hold · true F1 ${w.f1.toFixed(3)}${w.f1_p0!=null && !injActiveAt(w.week) ? ' (never-retrain: ' + w.f1_p0.toFixed(3) + ')' : ''} · D ${w.D_mean==null?'–':w.D_mean.toFixed(1)} · decision meter ${w.panel.value.toFixed(2)} / 1.00`, 'mu');
+  }
+}
+function injActiveAt(week){ let on=false; for (const i of S.injects){ if (S.cfg.week_start_idx[week] >= i.i) on = !!i.factor; } return on; }
+
+// ---------------------------------------------------------------- UI init / controls
+function initUI(d){
+  const sel = $('selPolicy'); sel.innerHTML = '';
+  for (const [k,v] of Object.entries(d.config.policies)){ const o = document.createElement('option'); o.value = k; o.textContent = v; sel.appendChild(o); }
+  sel.value = 'p4c'; $('rRange').value = (Math.log10(d.config.ratio_default) - Math.log10(0.3)) / (3 - Math.log10(0.3)) * 100; updR();
+}
+function rFromSlider(){ const v = +$('rRange').value / 100; return Math.pow(10, Math.log10(0.3) + v * (3 - Math.log10(0.3))); }
+function fmtR(r){ return r < 1 ? r.toFixed(2) : r < 10 ? r.toFixed(1) : Math.round(r).toString(); }
+function updR(){ $('rVal').textContent = fmtR(rFromSlider()); }
+$('rRange').addEventListener('input', () => { updR(); clearTimeout(ratioTimer); ratioTimer = setTimeout(() => api({action:'ratio', ratio: rFromSlider()}), 120); });
+$('bStart').onclick = () => api({action:'start'}).then(r => { if (!r.ok) alert(r.error); });
+$('bPause').onclick = () => api({action:'pause'});
+$('bReset').onclick = async () => { await api({action:'reset', policy:$('selPolicy').value, ratio:rFromSlider()}); resetLocal(); };
+$('selPolicy').onchange = async () => { await api({action:'reset', policy:$('selPolicy').value, ratio:rFromSlider()}); resetLocal(); };
+document.querySelectorAll('button[data-pace]').forEach(b => b.onclick = () => api({action:'pace', pace:b.dataset.pace}));
+document.querySelectorAll('button[data-inj]').forEach(b => b.onclick = () => api({action:'inject', factor:b.dataset.inj}));
+$('bStopInj').onclick = () => api({action:'inject', factor:null});
+document.addEventListener('keydown', e => { if (e.code === 'Space' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'INPUT'){ e.preventDefault(); (S.running ? $('bPause') : $('bStart')).click(); } });
+
+// ---------------------------------------------------------------- SVG helpers
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+function niceTicks(lo, hi, n){ const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))); const st = [1,2,2.5,5,10].map(k => k*mag).find(s => s >= raw) || raw; const out = []; for (let v = Math.ceil(lo/st)*st; v <= hi + 1e-9; v += st) out.push(+v.toFixed(6)); return out; }
+function frame(svg, W, H, L, R, T, B, ymin, ymax, yfmt, total){
+  svg.innerHTML = '';
+  const X = i => L + (total > 1 ? i/(total-1) : 0) * (W-L-R), Y = v => H-B - (v-ymin)/(ymax-ymin)*(H-B-T);
+  for (const v of niceTicks(ymin, ymax, 5)){ svg.append(el('line', {x1:L,x2:W-R,y1:Y(v),y2:Y(v),stroke:'#e8edf3'}), el('text', {x:L-6,y:Y(v)+4,'text-anchor':'end','font-size':12,fill:COL.muted}, yfmt(v))); }
+  const ws = S.cfg.week_start_idx;
+  for (const w of Object.keys(ws)){ if ((+w) % 4 === 3 || +w === S.cfg.weeks[0]) svg.append(el('line', {x1:X(ws[w]),x2:X(ws[w]),y1:H-B,y2:H-B+4,stroke:COL.grey}), el('text', {x:X(ws[w]),y:H-B+17,'text-anchor':'middle','font-size':12,fill:COL.muted}, 'wk ' + w)); }
+  svg.append(el('line', {x1:L,x2:W-R,y1:H-B,y2:H-B,stroke:COL.grey}));
+  return {X, Y};
+}
+function spans(){ // injected-drift spans in day indices
+  const out = []; let start = null, f = null;
+  for (const r of S.injects){ if (r.factor){ if (start === null){ start = r.i; f = r.factor; } } else if (start !== null){ out.push([start, r.i, f]); start = null; } }
+  if (start !== null) out.push([start, S.lastDay ? S.lastDay.i : start, f]); return out;
+}
+function retrainLines(svg, X, T, H, B, label){
+  let lastX = -1e9, row = 0;
+  for (const w of S.weeks) if (w.fire){
+    const x = X(S.weekEnd[w.week]); svg.append(el('line', {x1:x,x2:x,y1:T,y2:H-B,stroke:COL.amber,'stroke-width':2,'stroke-dasharray':'5 4'}));
+    row = (x - lastX < 62) ? row + 1 : 0; lastX = x;
+    if (label) svg.append(el('text', {x:x+4,y:T+11+row*14,'font-size':12,'font-weight':700,fill:'#8a5d00'}, '↻ ' + w.gen_after));
+  }
+}
+
+// ---------------------------------------------------------------- charts
+function renderF1(){
+  const svg = $('svgF1'), W = 860, H = 270, L = 46, R = 10, T = 10, B = 26, total = S.cfg.total_days;
+  const vals = S.days.map(d => d.f1).concat(S.weeks.map(w => w.f1_p0).filter(v => v != null));
+  let ymin = vals.length ? Math.min(...vals) : 0.55, ymax = vals.length ? Math.max(...vals) : 0.9;
+  ymin = Math.max(0, Math.floor((ymin - 0.03) * 20) / 20); ymax = Math.min(1, Math.ceil((ymax + 0.02) * 20) / 20);
+  const {X, Y} = frame(svg, W, H, L, R, T, B, ymin, ymax, v => v.toFixed(2), total);
+  for (const [a,b] of spans()){ const x1 = X(a), x2 = X(Math.min(b, total-1)); svg.append(el('rect', {x:x1,y:T,width:Math.max(2,x2-x1),height:H-B-T,fill:'#fdeee7',opacity:.9})); }
+  if (S.days.length > 1) svg.append(el('polyline', {points:S.days.map(d => X(d.i)+','+Y(d.f1)).join(' '), fill:'none', stroke:'#9fc3ee', 'stroke-width':1.3}));
+  const p0 = S.weeks.filter(w => w.f1_p0 != null && !injActiveAt(w.week));
+  if (p0.length > 1) svg.append(el('polyline', {points:p0.map(w => X(S.weekEnd[w.week])+','+Y(w.f1_p0)).join(' '), fill:'none', stroke:COL.grey, 'stroke-width':2, 'stroke-dasharray':'6 4'}));
+  retrainLines(svg, X, T, H, B, true);
+  if (S.weeks.length) svg.append(el('polyline', {points:S.weeks.map(w => X(S.weekEnd[w.week])+','+Y(w.f1)).join(' '), fill:'none', stroke:COL.blue, 'stroke-width':3}));
+  for (const w of S.weeks) svg.append(el('circle', {cx:X(S.weekEnd[w.week]), cy:Y(w.f1), r:3.2, fill:COL.blue}));
+  for (const [a,b,f] of spans()) svg.append(el('text', {x:X(a)+4,y:H-B-6,'font-size':12,'font-weight':700,fill:COL.orange}, 'injected drift ×' + f));
+}
+function renderD(){
+  const svg = $('svgD'), W = 860, H = 230, L = 46, R = 10, T = 10, B = 26, total = S.cfg.total_days;
+  const vals = S.days.map(d => d.D);
+  let ymin = Math.min(-1, vals.length ? Math.min(...vals) - 0.5 : -1), ymax = Math.max(6, vals.length ? Math.max(...vals) + 1 : 6);
+  const {X, Y} = frame(svg, W, H, L, R, T, B, ymin, ymax, v => v.toFixed(0), total);
+  const ws = S.cfg.week_start_idx;
+  for (const w of S.weeks){ if (w.event){ const a = ws[w.week], b = S.weekEnd[w.week]; svg.append(el('rect', {x:X(a),y:T,width:Math.max(2, X(b)-X(a)),height:H-B-T,fill:'#fff3cc'})); } }
+  const mf = ws[S.cfg.monitor_from_week];
+  if (mf != null){ svg.append(el('line', {x1:X(mf),x2:X(mf),y1:T,y2:H-B,stroke:COL.grey,'stroke-dasharray':'2 3'}), el('text', {x:X(mf)+4,y:T+12,'font-size':12,fill:COL.muted}, 'decisions start')); }
+  svg.append(el('line', {x1:L,x2:W-R,y1:Y(0),y2:Y(0),stroke:COL.green,'stroke-width':1.2,'stroke-dasharray':'4 3'}), el('text', {x:W-R-4,y:Y(0)-4,'text-anchor':'end','font-size':12,fill:COL.green}, 'normal level (0)'));
+  for (const [a,b] of spans()){ const x1 = X(a), x2 = X(Math.min(b, total-1)); svg.append(el('rect', {x:x1,y:T,width:Math.max(2,x2-x1),height:H-B-T,fill:'#fdeee7',opacity:.55})); }
+  retrainLines(svg, X, T, H, B, false);
+  if (S.days.length > 1) svg.append(el('polyline', {points:S.days.map(d => X(d.i)+','+Y(d.D)).join(' '), fill:'none', stroke:COL.navy, 'stroke-width':2.2}));
+}
+function renderZ(){
+  const svg = $('svgZ'); svg.innerHTML = ''; const d = S.lastDay; if (!d) return;
+  const keys = Object.keys(SIGNAME), zmax = Math.max(4, ...keys.map(k => d.z[k]));
+  const L = 150, R = 36, rowH = 28, x = v => L + Math.max(0, v) / zmax * (380 - L - R);
+  keys.forEach((k, i) => {
+    const y = 8 + i * rowH, z = d.z[k];
+    svg.append(el('text', {x:L-8,y:y+16,'text-anchor':'end','font-size':12.5,fill:COL.ink}, SIGNAME[k]));
+    svg.append(el('rect', {x:L,y:y+4,width:Math.max(1.5, x(z)-L),height:16,rx:3,fill:COL[FAM[k]]}));
+    svg.append(el('text', {x:x(z)+5,y:y+17,'font-size':12.5,'font-weight':700,fill:COL.ink}, z.toFixed(1)));
+  });
+  svg.append(el('line', {x1:L,x2:L,y1:4,y2:8+keys.length*rowH,stroke:COL.grey}));
+}
+function renderTop(){
+  const svg = $('svgTop'), cs = $('svgConf'); svg.innerHTML = ''; cs.innerHTML = ''; const d = S.lastDay; if (!d) return;
+  const m = Math.max(...d.top.map(t => Math.max(t[1], t[2])), 0.01), L = 128, R = 40, rowH = 29, x = v => L + v / m * (380 - L - R);
+  d.top.forEach((t, i) => {
+    const y = 6 + i * rowH;
+    svg.append(el('text', {x:L-6,y:y+15,'text-anchor':'end','font-size':12.5,fill:COL.ink}, t[0].length > 18 ? t[0].slice(0,17) + '…' : t[0]));
+    svg.append(el('rect', {x:L,y:y+1,width:Math.max(1, x(t[1])-L),height:11,rx:2,fill:COL.blue}), el('rect', {x:L,y:y+13,width:Math.max(1, x(t[2])-L),height:8,rx:2,fill:'#c3cad4'}));
+    svg.append(el('text', {x:x(Math.max(t[1],t[2]))+4,y:y+12,'font-size':11.5,fill:COL.muted}, (t[1]*100).toFixed(1) + '%'));
+  });
+  const hm = Math.max(...d.conf_hist, 0.01), bw = 380 / 10;
+  d.conf_hist.forEach((v, i) => { const h = v / hm * 48; cs.append(el('rect', {x:i*bw+3,y:56-h,width:bw-6,height:Math.max(1,h),fill:i/10 < d.tau ? COL.orange : COL.blue,rx:2})); });
+  cs.append(el('text', {x:2,y:68,'font-size':11,fill:COL.muted}, 'unsure'), el('text', {x:378,y:68,'text-anchor':'end','font-size':11,fill:COL.muted}, 'confident'));
+  $('confCap').textContent = `Confidence of today's ${d.n.toLocaleString()} flows: mean ${d.maxprob.toFixed(2)}, ${(d.reject*100).toFixed(1)}% below the "unsure" cutoff (orange).`;
+}
+function renderFlows(){
+  const d = S.lastDay, tb = $('flowBody'); if (!d) return; tb.innerHTML = '';
+  for (const f of d.samples){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="num">${Math.round(f.bytes).toLocaleString()}</td><td class="num">${Math.round(f.packets).toLocaleString()}</td><td class="num">${f.duration==null?'–':f.duration.toFixed(2)}</td><td>${f.pred}</td>` +
+      `<td><span class="cbar" style="width:${Math.round(f.conf*60)}px;background:${f.uncertain?COL.orange:COL.blue}"></span> ${f.conf.toFixed(2)}${f.uncertain?' ?':''}</td>`;
+    tb.append(tr);
+  }
+}
+function renderDecision(){
+  const d = S.lastDay, w = S.lastWeek; if (!d) return;
+  const p = (S.weeks.length && S.lastWeek.week === d.week) ? S.lastWeek.panel : d.panel;
+  $('polName').textContent = S.status ? S.status.policy : '';
+  const maxv = Math.max(1.5, p.value * 1.12), pct = Math.min(100, p.value / maxv * 100), mk = 1 / maxv * 100;
+  const fill = $('mFill'); fill.style.width = pct + '%'; fill.style.background = p.value >= 1 ? COL.orange : p.value >= 0.6 ? COL.amber : COL.green;
+  $('mMark').style.left = mk + '%'; $('mLab').style.left = mk + '%';
+  $('mLab').textContent = p.kind === 'threshold' ? 'alarm at 1.0' : 'retrain at 1.0';
+  $('decText').textContent = p.text;
+  let b = '';
+  if (w){ b += w.fire ? `<span class="badge retrain">Week ${w.week}: RETRAIN</span> ` : `<span class="badge hold">Week ${w.week}: HOLD</span> `;
+          b += w.event ? `<span class="badge event">persistent drift event active</span>` : `<span class="badge calm">no persistent drift event</span>`; }
+  $('decBadges').innerHTML = b;
+  $('decExplain').innerHTML = EXPLAIN[p.kind] || '';
+}
+function renderKPIs(){
+  const d = S.lastDay, st = S.status; if (!d || !st) return;
+  $('kWeek').textContent = 'Week ' + d.week; $('kDate').textContent = d.dow + ' ' + d.date + ` · day ${d.i + 1}/${S.cfg.total_days}`;
+  $('kGen').textContent = d.gen; $('kGenS').textContent = d.gen === 'w0' ? 'trained on weeks 1–2' : (d.gen.endsWith('L') ? 'trained live (demo budget)' : 'trained on 2 recent weeks');
+  $('kRet').textContent = st.retrains.length; $('kRetS').textContent = st.retrains.length ? 'at week ' + st.retrains.join(', ') : 'none yet';
+  $('kF1').textContent = d.f1.toFixed(3); $('kF1S').textContent = d.injected ? 'with injected drift' : 'evaluation only';
+  $('kD').textContent = d.D.toFixed(1); $('kDS').textContent = d.monitoring ? 'decisions active' : 'calibration weeks';
+}
+function renderLedger(){
+  const L = S.ledger; if (!L) return;
+  $('ledMon').textContent = L.monitor_label_reads; $('kLab').textContent = L.monitor_label_reads;
+  const c = L.calibration[0]; $('ledSetup').textContent = c ? `One-time setup: the loss map g was fitted on the labels of weeks ${c.from}–${c.to} (before any decision).` : '';
+  const chips = L.retrains.map(r => `<span>weeks ${r.from}–${r.to}</span>`).join('');
+  $('ledRet').innerHTML = chips || '<span style="background:#eef2f7;color:var(--muted)">none yet</span>';
+}
+function renderChrome(){
+  const chip = $('chip'); let cls = '', txt = 'Ready';
+  if (S.phase === 'error'){ cls = 'error'; txt = 'Error'; }
+  else if (S.busy){ cls = 'busy'; txt = S.busy; }
+  else if (S.status && S.status.done){ cls = 'done'; txt = 'Finished'; }
+  else if (S.running){ cls = 'running'; txt = 'Running'; }
+  else if (S.status && S.status.pos > 0){ txt = 'Paused'; }
+  chip.className = 'chip ' + cls; chip.textContent = txt;
+  $('bStart').disabled = S.running || (S.status && S.status.done); $('bPause').disabled = !S.running;
+  document.querySelectorAll('button[data-pace]').forEach(b => b.classList.toggle('on', b.dataset.pace === S.pace));
+}
+function render(){
+  if (!S.cfg) return; renderChrome(); renderKPIs(); renderF1(); renderD(); renderZ(); renderTop(); renderFlows(); renderDecision(); renderLedger();
+  if (S.status && S.status.done && !S.doneLogged){ S.doneLogged = true; logLine('Year complete', `Finished. Retrains at weeks ${S.status.retrains.join(', ') || 'none'}; the monitor read 0 labels.`, 'rt'); }
+  if (S.status && !S.status.done) S.doneLogged = false;
+}
+setInterval(poll, 350);
+setInterval(() => { if (dirty){ dirty = false; try { render(); } catch(e){ window.onerror(e.message, 'render', 0, 0); } } }, 120);
+poll();
+</script>
+</body>
+</html>
