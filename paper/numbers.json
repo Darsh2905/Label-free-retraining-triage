@@ -1,0 +1,620 @@
+{
+  "P0_never": {
+    "retrains": 0.0,
+    "f1": 0.7086609798363396,
+    "f1_sd": 0.0023872565816924225,
+    "gap_pt": -8.881784197001252e-15,
+    "gap_pt_sd": 2.531698018113677e-14,
+    "cost_units": 101.42357445403171,
+    "delay": NaN,
+    "false_trig": NaN,
+    "delay_exporter_wk10": NaN
+  },
+  "P1_monthly": {
+    "retrains": 12.0,
+    "f1": 0.8548466417399473,
+    "f1_sd": 0.0008162432217577935,
+    "gap_pt": 0.45564871984575817,
+    "gap_pt_sd": 0.07635897284163441,
+    "cost_units": 16.58910224616401,
+    "delay": 0.6057142857142856,
+    "false_trig": 0.5,
+    "delay_exporter_wk10": 0.0
+  },
+  "P2_weekly": {
+    "retrains": 49.0,
+    "f1": 0.8684031003856791,
+    "f1_sd": 0.00036050038322572403,
+    "gap_pt": 0.005756823402807143,
+    "gap_pt_sd": 0.0026857477924686966,
+    "cost_units": 49.98407556553296,
+    "delay": 0.0,
+    "false_trig": 0.9224489795918368,
+    "delay_exporter_wk10": 0.0
+  },
+  "periodic_8": {
+    "retrains": 6.0,
+    "f1": 0.8407392158023622,
+    "f1_sd": 0.00036589886446137057,
+    "gap_pt": 0.5819166997635739,
+    "gap_pt_sd": 0.040075559417974985,
+    "cost_units": 15.483180034764203,
+    "delay": 2.7,
+    "false_trig": 0.0,
+    "delay_exporter_wk10": 0.0
+  },
+  "P3_threshold": {
+    "retrains": 3.4,
+    "f1": 0.8251599938487194,
+    "f1_sd": 0.005684892465608362,
+    "gap_pt": 0.7957583628772791,
+    "gap_pt_sd": 0.27130897584149444,
+    "cost_units": 19.62781274707369,
+    "delay": 5.766666666666667,
+    "false_trig": 0.0,
+    "delay_exporter_wk10": 0.0
+  },
+  "P4_proposed": {
+    "retrains": 4.0,
+    "f1": 0.8308586522885231,
+    "f1_sd": 0.001398352226074005,
+    "gap_pt": 0.6143987743023338,
+    "gap_pt_sd": 0.16310760297342605,
+    "cost_units": 15.956449696804935,
+    "delay": 3.25,
+    "false_trig": 0.0,
+    "delay_exporter_wk10": 0.0
+  },
+  "P4c_cumulative": {
+    "retrains": 5.4,
+    "f1": 0.8417876743154972,
+    "f1_sd": 0.0018586901945774864,
+    "gap_pt": 0.2571559655462585,
+    "gap_pt_sd": 0.11607121144675527,
+    "cost_units": 11.325691846526526,
+    "delay": 2.06,
+    "false_trig": 0.0,
+    "delay_exporter_wk10": 0.0
+  },
+  "P4c_r100": {
+    "retrains": 11.0,
+    "f1": 0.8533043724815395,
+    "f1_sd": 0.0020051218426688742,
+    "gap_pt": 0.45897545901362413,
+    "gap_pt_sd": 0.08755042488120318,
+    "cost_units": 14.991277059044844,
+    "delay": 0.819047619047619,
+    "false_trig": 0.4121212121212122,
+    "delay_exporter_wk10": 0.0
+  },
+  "P4c_r300": {
+    "retrains": 12.6,
+    "f1": 0.8559999028716957,
+    "f1_sd": 0.002704276657644297,
+    "gap_pt": 0.3615814951422891,
+    "gap_pt_sd": 0.04987149156824779,
+    "cost_units": 16.026236164414094,
+    "delay": 0.4666666666666666,
+    "false_trig": 0.5086446886446886,
+    "delay_exporter_wk10": 0.0
+  },
+  "P5_oracle": {
+    "retrains": 6.8,
+    "f1": 0.8462320045201898,
+    "f1_sd": 0.000919326052643638,
+    "gap_pt": 0.2953003726315062,
+    "gap_pt_sd": 0.10904388727903022,
+    "cost_units": 11.985523895757563,
+    "delay": 1.361904761904762,
+    "false_trig": 0.0,
+    "delay_exporter_wk10": 0.2
+  },
+  "unclipped_cost_units": {
+    "P0_never": 101.25093609471321,
+    "P1_monthly": 0.8262644032441261,
+    "P2_weekly": 26.64550139459459,
+    "P3_threshold": 14.741630325298253,
+    "P4_proposed": 9.783697124962776,
+    "P4c_cumulative": 3.5427889260056764,
+    "P5_oracle": 2.4989956151839796
+  },
+  "cost_rank_same_clip_vs_raw": false,
+  "regret_units_by_ratio": {
+    "P0_never@0.3": 0.40120602777017994,
+    "P0_never@1": 5.89350280350711,
+    "P0_never@3": 23.979084527315234,
+    "P0_never@10": 91.78505885040386,
+    "P0_never@30": 290.33007551917854,
+    "P0_never@100": 991.8621636166235,
+    "P0_never@300": 3000.8516571266423,
+    "P0_never@1000": 10034.482116149256,
+    "P1_monthly@0.3": 9.49617186153415,
+    "P1_monthly@1": 8.210055582720338,
+    "P1_monthly@3": 6.928742864954924,
+    "P1_monthly@10": 6.950586642536147,
+    "P1_monthly@30": 11.826658895575433,
+    "P1_monthly@100": 35.51744153794644,
+    "P1_monthly@300": 107.81749089061027,
+    "P1_monthly@1000": 363.0348953624851,
+    "P3_threshold@0.3": 1.2453331765614388,
+    "P3_threshold@1": 0.7739266328113062,
+    "P3_threshold@3": 1.8203560152278278,
+    "P3_threshold@10": 9.989297143445828,
+    "P3_threshold@30": 38.14279039830448,
+    "P3_threshold@100": 143.30454654704323,
+    "P3_threshold@300": 448.3788059179007,
+    "P3_threshold@1000": 1518.305945453453,
+    "P4@0.3": 0.40120602777017994,
+    "P4@1": 5.89350280350711,
+    "P4@3": 23.979084527315234,
+    "P4@10": 6.31793409317707,
+    "P4@30": 15.439556145485488,
+    "P4@100": 60.7317887967788,
+    "P4@300": 195.1684369786939,
+    "P4@1000": 667.2713823227638,
+    "P4c@0.3": 1.394618284561257,
+    "P4c@1": 1.493167002126454,
+    "P4c@3": 0.9547065920224833,
+    "P4c@10": 1.6871762428986607,
+    "P4c@30": 8.581673502490654,
+    "P4c@100": 28.53918966675476,
+    "P4c@300": 73.53150843811278,
+    "P4c@1000": 243.5282610156396,
+    "best_periodic@0.3": 0.05314643154320947,
+    "best_periodic@1": 1.013791075885464,
+    "best_periodic@3": 2.3969662015349806,
+    "best_periodic@10": 5.844664431136338,
+    "best_periodic@30": 11.826658895575433,
+    "best_periodic@100": 31.274810162010176,
+    "best_periodic@300": 36.66669047167879,
+    "best_periodic@1000": 39.5322272993802
+  },
+  "dp_frontier": {
+    "0": 0.7086609798363395,
+    "1": 0.7801191221824013,
+    "2": 0.8128113808851303,
+    "3": 0.830714198334058,
+    "4": 0.8370026400315463,
+    "5": 0.8427182251305643,
+    "6": 0.8465583827999978,
+    "7": 0.8497441415217637,
+    "12": 0.8594031289384049,
+    "20": 0.8645657233133333,
+    "49": 0.8684606686197072
+  },
+  "checkpoint": {
+    "weekly_level": {
+      "pearson": 0.8556938014818898,
+      "spearman": 0.5758943577430972,
+      "n": 50
+    },
+    "weekly_level_alt_weighting": {
+      "pearson": 0.8640652774617616,
+      "spearman": 0.5975030012004802,
+      "n": 50
+    },
+    "weekly_wow": {
+      "pearson": 0.8019103132479906,
+      "spearman": 0.7981632653061224,
+      "n": 49
+    },
+    "weekly_detrended": {
+      "pearson": 0.9412592528154391,
+      "spearman": 0.8544057623049219,
+      "n": 50
+    },
+    "daily_level": {
+      "pearson": 0.8298436556794593,
+      "spearman": 0.5840365101126112,
+      "n": 341
+    },
+    "per_signal_weekly_level": {
+      "max_prob_mean": {
+        "pearson": 0.8742753987615097,
+        "spearman": 0.7030492196878751,
+        "n": 50
+      },
+      "max_prob_p10": {
+        "pearson": 0.873574023943966,
+        "spearman": 0.7188955582232893,
+        "n": 50
+      },
+      "margin_mean": {
+        "pearson": 0.8754190952943292,
+        "spearman": 0.7151500600240095,
+        "n": 50
+      },
+      "entropy_mean": {
+        "pearson": 0.8607065194709385,
+        "spearman": 0.6709723889555822,
+        "n": 50
+      },
+      "js_div": {
+        "pearson": 0.32337622131483174,
+        "spearman": 0.047202881152460976,
+        "n": 50
+      },
+      "ks_mean": {
+        "pearson": 0.7770034580572258,
+        "spearman": 0.200672268907563,
+        "n": 50
+      },
+      "mmd": {
+        "pearson": 0.7397446953732362,
+        "spearman": 0.17061224489795918,
+        "n": 50
+      },
+      "reject_rate": {
+        "pearson": 0.8918486696738502,
+        "spearman": 0.7289795918367347,
+        "n": 50
+      }
+    },
+    "pelt_penalty": 8.0
+  },
+  "p0": {
+    "ref_f1_w0": 0.8399886912727738,
+    "mean_f1": 0.7090446926369458,
+    "min_f1": 0.6097881543575151,
+    "min_week": 52,
+    "f1_week9": 0.8231782321327948,
+    "f1_week10": 0.7838413094976714,
+    "f1_week11": 0.7572305362613965,
+    "f1_week40_52": 0.6445246898148898,
+    "V_ref_weekly_flows": 4894045.60953
+  },
+  "per_service_drop_top": {
+    "bitdefender-gravityzone": 0.6255307616536175,
+    "avast": 0.5161569503226697,
+    "microsoft-push": 0.48608251889250154,
+    "rubiconproject": 0.4856411753016683,
+    "seznam-email": 0.4716276651634461
+  },
+  "per_service_drop_median": 0.15021307301219894,
+  "calibration": {
+    "pelt_penalty": 8.0,
+    "g_floor": 0.002303064426729657,
+    "sigma": {
+      "max_prob_mean": 0.023878592920303345,
+      "max_prob_p10": 0.024777623552083967,
+      "margin_mean": 0.03259530619382858,
+      "entropy_mean": 0.08263305265903473,
+      "js_div": 0.01751570013752458,
+      "ks_mean": 0.004970946,
+      "mmd": 0.0019765683953148015,
+      "reject_rate": 0.014677739999999988
+    },
+    "n_calib_days": 53
+  },
+  "tls_retrain_weeks_seed0": {
+    "P4_proposed": [
+      10,
+      14,
+      25,
+      37
+    ],
+    "P4c_cumulative": [
+      10,
+      13,
+      25,
+      32,
+      38,
+      47
+    ],
+    "P5_oracle": [
+      10,
+      14,
+      25,
+      31,
+      37,
+      45,
+      50
+    ],
+    "P3_threshold": [
+      10,
+      15,
+      25,
+      37
+    ]
+  },
+  "quic": {
+    "event_day": 22,
+    "mean_p0_drop": 0.0036892075486144593,
+    "seeds": {
+      "0": {
+        "p0_f1_before_event": 0.646355008581773,
+        "p0_f1_from_event": 0.637264967972526,
+        "p0_drop": 0.009090040609247008,
+        "drift_event_changepoint_days": [
+          12
+        ],
+        "P3_threshold": {
+          "retrain_days": [],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": null
+        },
+        "P4_proposed": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P4c_cumulative": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P1_monthly": {
+          "retrain_days": [
+            11,
+            15,
+            19,
+            23,
+            27
+          ],
+          "false_alarms_before_event": [
+            11,
+            15,
+            19
+          ],
+          "first_reaction_delay_days": 1
+        },
+        "P5_oracle": {
+          "retrain_days": [
+            10,
+            18
+          ],
+          "false_alarms_before_event": [
+            10,
+            18
+          ],
+          "first_reaction_delay_days": null
+        }
+      },
+      "1": {
+        "p0_f1_before_event": 0.6584851100104572,
+        "p0_f1_from_event": 0.658778243298414,
+        "p0_drop": -0.0002931332879567705,
+        "drift_event_changepoint_days": [
+          11
+        ],
+        "P3_threshold": {
+          "retrain_days": [],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": null
+        },
+        "P4_proposed": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P4c_cumulative": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P1_monthly": {
+          "retrain_days": [
+            11,
+            15,
+            19,
+            23,
+            27
+          ],
+          "false_alarms_before_event": [
+            11,
+            15,
+            19
+          ],
+          "first_reaction_delay_days": 1
+        },
+        "P5_oracle": {
+          "retrain_days": [
+            12
+          ],
+          "false_alarms_before_event": [
+            12
+          ],
+          "first_reaction_delay_days": null
+        }
+      },
+      "2": {
+        "p0_f1_before_event": 0.6563405746664586,
+        "p0_f1_from_event": 0.6542575767185569,
+        "p0_drop": 0.002082997947901677,
+        "drift_event_changepoint_days": [
+          11
+        ],
+        "P3_threshold": {
+          "retrain_days": [],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": null
+        },
+        "P4_proposed": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P4c_cumulative": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P1_monthly": {
+          "retrain_days": [
+            11,
+            15,
+            19,
+            23,
+            27
+          ],
+          "false_alarms_before_event": [
+            11,
+            15,
+            19
+          ],
+          "first_reaction_delay_days": 1
+        },
+        "P5_oracle": {
+          "retrain_days": [
+            9,
+            14
+          ],
+          "false_alarms_before_event": [
+            9,
+            14
+          ],
+          "first_reaction_delay_days": null
+        }
+      },
+      "3": {
+        "p0_f1_before_event": 0.6512556173411596,
+        "p0_f1_from_event": 0.6527217496566804,
+        "p0_drop": -0.0014661323155208406,
+        "drift_event_changepoint_days": [
+          12
+        ],
+        "P3_threshold": {
+          "retrain_days": [],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": null
+        },
+        "P4_proposed": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P4c_cumulative": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P1_monthly": {
+          "retrain_days": [
+            11,
+            15,
+            19,
+            23,
+            27
+          ],
+          "false_alarms_before_event": [
+            11,
+            15,
+            19
+          ],
+          "first_reaction_delay_days": 1
+        },
+        "P5_oracle": {
+          "retrain_days": [
+            10,
+            16
+          ],
+          "false_alarms_before_event": [
+            10,
+            16
+          ],
+          "first_reaction_delay_days": null
+        }
+      },
+      "4": {
+        "p0_f1_before_event": 0.6493948435717517,
+        "p0_f1_from_event": 0.6403625787823505,
+        "p0_drop": 0.009032264789401223,
+        "drift_event_changepoint_days": [
+          11
+        ],
+        "P3_threshold": {
+          "retrain_days": [],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": null
+        },
+        "P4_proposed": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P4c_cumulative": {
+          "retrain_days": [
+            22
+          ],
+          "false_alarms_before_event": [],
+          "first_reaction_delay_days": 0
+        },
+        "P1_monthly": {
+          "retrain_days": [
+            11,
+            15,
+            19,
+            23,
+            27
+          ],
+          "false_alarms_before_event": [
+            11,
+            15,
+            19
+          ],
+          "first_reaction_delay_days": 1
+        },
+        "P5_oracle": {
+          "retrain_days": [
+            10,
+            15
+          ],
+          "false_alarms_before_event": [
+            10,
+            15
+          ],
+          "first_reaction_delay_days": null
+        }
+      }
+    },
+    "retrains_mean": {
+      "P1_monthly": 5.0,
+      "P2_weekly": 20.0,
+      "P3_threshold": 0.0,
+      "P4_proposed": 1.0,
+      "P4c_cumulative": 1.0,
+      "P5_oracle": 1.8
+    },
+    "f1_mean": {
+      "P0_never": 0.6511364949847819,
+      "P1_monthly": 0.6886110473238303,
+      "P3_threshold": 0.6511364949847819,
+      "P4_proposed": 0.6656876092619071,
+      "P4c_cumulative": 0.6656876092619071,
+      "P5_oracle": 0.6835143612579568
+    }
+  },
+  "p4c_lowest_regret_ratios": [
+    3.0,
+    10.0,
+    30.0,
+    100.0
+  ],
+  "per_service_names_top2": [
+    "bitdefender-gravityzone",
+    "avast"
+  ],
+  "g_transfer_late": {
+    "mae": 0.08363217131042859,
+    "bias": -0.08363217131042859,
+    "spearman": 0.7749939226967022
+  }
+}

@@ -18,7 +18,7 @@ import numpy as np
 from src.evaluation.sealed_store import macro_f1_from_counts
 
 
-def f1_table(world, weeks: list[int]) -> dict[tuple[str, int], float]:
+def f1_table(world, weeks: list[int], need_signals: bool = False) -> dict[tuple[str, int], float]:
     world.store.reset_clock()
     world.store.advance_to(max(weeks))              # hindsight: evaluation after the year
     keys = ["w0"] + [f"t{t}" for t in weeks[:-1]]
@@ -26,10 +26,14 @@ def f1_table(world, weeks: list[int]) -> dict[tuple[str, int], float]:
     for i, g in enumerate(keys):
         start = 0 if g == "w0" else weeks.index(int(g[1:])) + 1
         for w in weeks[start:]:
-            c = world.weekly_counts(g, w, need_signals=True)   # one predict serves oracle + all timelines
+            c = world.weekly_counts(g, w, need_signals=need_signals)
             F[(g, w)] = macro_f1_from_counts(c["tp"], c["fp"], c["fn"])
     world.store.reset_clock()
     return F
+
+
+def _loss(x: float, clip: bool) -> float:
+    return max(0.0, x) if clip else x
 
 
 def _gen(weeks, j):
@@ -69,10 +73,10 @@ def frontier(F: dict, weeks: list[int], max_retrains: int) -> list[dict]:
 
 
 def min_cost(F: dict, weeks: list[int], volume: dict[int, float], ref_f1: float, C_err: float,
-             C_fix: float) -> dict:
+             C_fix: float, clip_loss: bool = False) -> dict:
     """Minimise sum_w (ref_f1 - F1_w) * V_w * C_err + n_retrains * C_fix."""
     m = len(weeks)
-    cost = lambda j, w: (ref_f1 - F[(_gen(weeks, j), w)]) * volume[w] * C_err
+    cost = lambda j, w: _loss(ref_f1 - F[(_gen(weeks, j), w)], clip_loss) * volume[w] * C_err
     best = np.zeros(m + 1)
     choice = np.full(m + 1, -1, int)
     for j in range(m - 1, -1, -1):

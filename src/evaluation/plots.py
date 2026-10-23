@@ -108,8 +108,8 @@ def cost_regret(summ: pd.DataFrame, opt: pd.DataFrame, path: str, C_fix: float) 
             v = sub[mask].total_cost
             return (v.min() - b) / C_fix if len(v) else np.nan
         rows.append({"seed": seed, "ratio": r,
-                     "P4 myopic (matched r)": reg(sub.policy == f"P4_r{r}"),
-                     "P4c cumulative (matched r)": reg(sub.policy == f"P4c_r{r}"),
+                     "P4 myopic (matched r)": reg(sub.policy == f"P4_r{r:g}"),
+                     "P4c cumulative (matched r)": reg(sub.policy == f"P4c_r{r:g}"),
                      "best periodic (tuned in hindsight)": reg(sub.family == "periodic"),
                      "P1 monthly": reg(sub.policy == "P1_monthly"),
                      "P3 threshold (auto)": reg(sub.policy == "P3_threshold"),

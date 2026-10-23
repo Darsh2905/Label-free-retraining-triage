@@ -1,0 +1,15 @@
+\begin{tabular}{@{}llrcrrrr@{}}
+\toprule
+ & Policy & Retrains & Macro-F1 & Gap & Cost & Delay & FT \\
+\midrule
+P0 & Never & 0.0 & 0.709 $\pm$ 0.002 & -0.00 & 101.4 & -- & -- \\
+P1 & Periodic, $k{=}4$ & 12.0 & 0.855 $\pm$ 0.001 & 0.46 & 16.6 & 0.6 & 0.50 \\
+P2 & Periodic, $k{=}1$ & 49.0 & 0.868 $\pm$ 0.000 & 0.01 & 50.0 & 0.0 & 0.92 \\
+-- & Periodic, $k{=}8$ & 6.0 & 0.841 $\pm$ 0.000 & 0.58 & 15.5 & 2.7 & 0.00 \\
+P3 & Threshold on $D$ & 3.4 & 0.825 $\pm$ 0.006 & 0.80 & 19.6 & 5.8 & 0.00 \\
+P4 & Myopic cost rule & 4.0 & 0.831 $\pm$ 0.001 & 0.61 & 16.0 & 3.2 & 0.00 \\
+P4c & Cumulative cost rule & 5.4 & 0.842 $\pm$ 0.002 & 0.26 & 11.3 & 2.1 & 0.00 \\
+-- & Cumulative, $r{=}100$ & 11.0 & 0.853 $\pm$ 0.002 & 0.46 & 15.0 & 0.8 & 0.41 \\
+P5 & Threshold oracle & 6.8 & 0.846 $\pm$ 0.001 & 0.30 & 12.0 & 1.4 & 0.00 \\
+\bottomrule
+\end{tabular}

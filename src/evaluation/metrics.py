@@ -22,13 +22,17 @@ import numpy as np
 import pandas as pd
 
 
-def summarize(tl: dict, cfg: dict, ref_f1_w0: float, V_ref: float, cost_ratio: float) -> dict:
+def summarize(tl: dict, cfg: dict, ref_f1_w0: float, V_ref: float, cost_ratio: float,
+              clip_loss: bool = False) -> dict:
     ev = cfg["evaluation"]
     rows = pd.DataFrame(tl["rows"])
     rows = rows[(rows.week >= ev["eval_start"]) & (rows.week <= cfg["replay_end"])]
     C_fix = cfg["cost"]["C_retrain"] + cfg["cost"]["C_label"]
     C_err = cost_ratio * C_fix / V_ref
-    err_cost = float(((ref_f1_w0 - rows.macro_f1) * rows.volume * C_err).sum())
+    loss = ref_f1_w0 - rows.macro_f1
+    if clip_loss:      # a week above the W0 reference earns no credit (see README, cost-metric caveat)
+        loss = loss.clip(lower=0.0)
+    err_cost = float((loss * rows.volume * C_err).sum())
     retr = rows[rows.retrain]
     n_ret = int(len(retr))
     thr = ev["justified_loss"]
